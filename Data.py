@@ -6,4 +6,9 @@ import numpy as np
 def create_VRP_dataset(
         n_problems,
         n_cust,
-    
+        data_dir,
+        capacity,
+        seed=None,
+        data_type='train'):
+    '''
+ 
