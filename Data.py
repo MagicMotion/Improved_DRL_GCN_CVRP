@@ -11,4 +11,7 @@ def create_VRP_dataset(
         seed=None,
         data_type='train'):
     '''
-    This function creates VRP instances and saves them on disk. If a file i
+    This function creates VRP instances and saves them on disk. If a file is already available,
+    nothing will be done.
+    Input:
+        n_problems: number of probl
