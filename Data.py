@@ -25,4 +25,7 @@ def create_VRP_dataset(
 
     # set random number generator
     n_nodes = n_cust + 1
-    if s
+    if seed == None:
+        rnd = np.random
+    else:
+        rnd = np.random.RandomS
