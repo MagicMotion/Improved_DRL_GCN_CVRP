@@ -18,4 +18,6 @@ def create_VRP_dataset(
         n_cust: number of customers in the problem.
         data_dir: the directory to save or load the file.
         seed: random seed for generating the data.
-        data_type: the purpose for generating the dat
+        data_type: the purpose for generating the data. It can be 'train', 'val', or any string.
+    output:
+        dir of
