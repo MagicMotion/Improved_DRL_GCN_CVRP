@@ -14,4 +14,6 @@ def create_VRP_dataset(
     This function creates VRP instances and saves them on disk. If a file is already available,
     nothing will be done.
     Input:
-        n_problems: number of probl
+        n_problems: number of problems to generate.
+        n_cust: number of customers in the problem.
+        data_dir: 
