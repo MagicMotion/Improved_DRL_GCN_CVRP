@@ -20,4 +20,9 @@ def create_VRP_dataset(
         seed: random seed for generating the data.
         data_type: the purpose for generating the data. It can be 'train', 'val', or any string.
     output:
-        dir of
+        dir of the created data
+     '''
+
+    # set random number generator
+    n_nodes = n_cust + 1
+    if s
