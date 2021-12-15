@@ -28,4 +28,7 @@ def create_VRP_dataset(
     if seed == None:
         rnd = np.random
     else:
-        rnd = np.random.RandomS
+        rnd = np.random.RandomState(seed)
+
+    # build task name and datafiles
+    task_dir = 'vrp
