@@ -17,4 +17,5 @@ def create_VRP_dataset(
         n_problems: number of problems to generate.
         n_cust: number of customers in the problem.
         data_dir: the directory to save or load the file.
-        seed: random seed for 
+        seed: random seed for generating the data.
+        data_type: the purpose for generating the dat
