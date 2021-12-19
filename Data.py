@@ -34,4 +34,8 @@ def create_VRP_dataset(
     task_dir = 'vrp{}'.format(n_cust)
     fname = os.path.join(data_dir, task_dir)
 
-    instance_type=
+    instance_type=''
+
+    # cteate data
+    if os.path.exists(fname):
+        print('Data {} already e
