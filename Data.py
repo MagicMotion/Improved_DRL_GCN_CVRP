@@ -31,4 +31,7 @@ def create_VRP_dataset(
         rnd = np.random.RandomState(seed)
 
     # build task name and datafiles
-    task_dir = 'vrp
+    task_dir = 'vrp{}'.format(n_cust)
+    fname = os.path.join(data_dir, task_dir)
+
+    instance_type=
