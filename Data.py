@@ -38,4 +38,7 @@ def create_VRP_dataset(
 
     # cteate data
     if os.path.exists(fname):
-        print('Data {} already e
+        print('Data {} already exists!'.format(task_dir))
+    else:
+        if not os.path.isdir(fname):
+       
