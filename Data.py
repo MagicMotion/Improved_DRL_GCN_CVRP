@@ -41,4 +41,6 @@ def create_VRP_dataset(
         print('Data {} already exists!'.format(task_dir))
     else:
         if not os.path.isdir(fname):
-       
+            os.makedirs(fname)
+        for i in range(n_problems):
+            prop = np.random.ran
