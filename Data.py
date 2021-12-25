@@ -45,4 +45,6 @@ def create_VRP_dataset(
         for i in range(n_problems):
             prop = np.random.random()
             if prop <= .5:
-                coordinates = rnd.uniform(0, 1, 
+                coordinates = rnd.uniform(0, 1, size=(n_nodes, 2))
+                instance_type = 'uniform'
+         
