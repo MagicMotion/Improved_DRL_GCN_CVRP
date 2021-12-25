@@ -43,4 +43,6 @@ def create_VRP_dataset(
         if not os.path.isdir(fname):
             os.makedirs(fname)
         for i in range(n_problems):
-            prop = np.random.ran
+            prop = np.random.random()
+            if prop <= .5:
+                coordinates = rnd.uniform(0, 1, 
