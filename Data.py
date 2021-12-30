@@ -55,4 +55,5 @@ def create_VRP_dataset(
                 instance_type = 'guassian'
 
 
-            d
+            demand = rnd.randint(1, 10, [n_nodes, 1])
+            demand[-1, :] = 
