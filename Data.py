@@ -62,4 +62,6 @@ def create_VRP_dataset(
 
             task_name = 'vrp-size-{}-id-{}-{}.mat'.format(n_cust, i + 1, data_type)
 
- 
+            path = os.path.join(fname, task_name)
+
+            sio.savemat(path, {'
