@@ -60,4 +60,6 @@ def create_VRP_dataset(
 
             shortest_path_matrix = distance_matrix(coordinates, coordinates)
 
+            task_name = 'vrp-size-{}-id-{}-{}.mat'.format(n_cust, i + 1, data_type)
+
  
