@@ -48,4 +48,6 @@ def create_VRP_dataset(
                 coordinates = rnd.uniform(0, 1, size=(n_nodes, 2))
                 instance_type = 'uniform'
             else:
-                # coordinates = rnd.triangular(0,mode=0.5,right=1,size=(n_no
+                # coordinates = rnd.triangular(0,mode=0.5,right=1,size=(n_nodes,2))
+                coordinates = np.random.normal(.5,.15,size=(n_nodes,2))
+      
