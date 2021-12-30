@@ -56,4 +56,8 @@ def create_VRP_dataset(
 
 
             demand = rnd.randint(1, 10, [n_nodes, 1])
-            demand[-1, :] = 
+            demand[-1, :] = 0
+
+            shortest_path_matrix = distance_matrix(coordinates, coordinates)
+
+ 
