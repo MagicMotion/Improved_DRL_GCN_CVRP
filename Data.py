@@ -65,4 +65,13 @@ def create_VRP_dataset(
             path = os.path.join(fname, task_name)
 
             sio.savemat(path, {'shortest_path_matrix': shortest_path_matrix, 'demand': demand,
-                               'coordinates': coordinates, 'capacity': capacity, 'instance_type': ins
+                               'coordinates': coordinates, 'capacity': capacity, 'instance_type': instance_type})
+
+    return fname
+
+
+file_id = 0
+
+
+class DataManager(object):
+    def __i
