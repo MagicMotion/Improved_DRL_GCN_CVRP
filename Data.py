@@ -74,4 +74,6 @@ file_id = 0
 
 
 class DataManager(object):
-    def __i
+    def __init__(self, args, data_type):
+        self.args = args
+        self.path
