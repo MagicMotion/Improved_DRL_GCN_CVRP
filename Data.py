@@ -76,4 +76,5 @@ file_id = 0
 class DataManager(object):
     def __init__(self, args, data_type):
         self.args = args
-        self.path
+        self.path = args['data_dir'] + '/' + str(data_type)
+        self.batch_size 
