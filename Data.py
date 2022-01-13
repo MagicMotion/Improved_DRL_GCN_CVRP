@@ -77,4 +77,5 @@ class DataManager(object):
     def __init__(self, args, data_type):
         self.args = args
         self.path = args['data_dir'] + '/' + str(data_type)
-        self.batch_size 
+        self.batch_size = args['batch_size']
+        self.rnd = np.random.RandomState(seed=args['random_s
