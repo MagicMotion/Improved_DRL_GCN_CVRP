@@ -96,4 +96,6 @@ class DataManager(object):
     def _get_task_name(self):
         self.files_name = os.listdir(self.path)
 
- 
+    def load_task(self,fixed_name=''):
+        if not fixed_name:
+            if (self.cur
