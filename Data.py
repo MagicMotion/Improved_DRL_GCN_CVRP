@@ -87,4 +87,5 @@ class DataManager(object):
 
     def create_data(self):
         path = self.path
-        self.path = c
+        self.path = create_VRP_dataset(self.n_problems, self.args['n_customers'], path,
+                
