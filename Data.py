@@ -89,4 +89,8 @@ class DataManager(object):
         path = self.path
         self.path = create_VRP_dataset(self.n_problems, self.args['n_customers'], path,
                                        seed=self.args['random_seed'] + 1, data_type=self.data_type,
-          
+                                       capacity=self.args['capacity'])
+
+        self._get_task_name()
+
+  
