@@ -98,4 +98,6 @@ class DataManager(object):
 
     def load_task(self,fixed_name=''):
         if not fixed_name:
-            if (self.cur
+            if (self.current_batch_id + 1 == self.total_batch):
+                print('Reuse data')
+          
