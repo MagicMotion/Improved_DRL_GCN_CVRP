@@ -83,4 +83,8 @@ class DataManager(object):
         self.n_problems = args['instance_num']
         self.data_type = data_type
         self.current_batch_id = 0
-        self.total_batch = self.n_problems // self.b
+        self.total_batch = self.n_problems // self.batch_size
+
+    def create_data(self):
+        path = self.path
+        self.path = c
