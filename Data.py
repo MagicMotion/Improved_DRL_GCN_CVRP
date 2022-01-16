@@ -93,4 +93,7 @@ class DataManager(object):
 
         self._get_task_name()
 
-  
+    def _get_task_name(self):
+        self.files_name = os.listdir(self.path)
+
+ 
