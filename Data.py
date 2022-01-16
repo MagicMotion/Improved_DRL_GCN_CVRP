@@ -82,4 +82,5 @@ class DataManager(object):
 
         self.n_problems = args['instance_num']
         self.data_type = data_type
-    
+        self.current_batch_id = 0
+        self.total_batch = self.n_problems // self.b
