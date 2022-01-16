@@ -88,4 +88,5 @@ class DataManager(object):
     def create_data(self):
         path = self.path
         self.path = create_VRP_dataset(self.n_problems, self.args['n_customers'], path,
-                
+                                       seed=self.args['random_seed'] + 1, data_type=self.data_type,
+          
