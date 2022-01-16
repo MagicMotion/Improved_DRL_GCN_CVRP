@@ -100,4 +100,6 @@ class DataManager(object):
         if not fixed_name:
             if (self.current_batch_id + 1 == self.total_batch):
                 print('Reuse data')
-          
+                self.current_batch_id = 0
+
+            self.current_file_set =
