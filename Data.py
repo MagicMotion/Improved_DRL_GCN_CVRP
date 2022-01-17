@@ -102,4 +102,5 @@ class DataManager(object):
                 print('Reuse data')
                 self.current_batch_id = 0
 
-            self.current_file_set =
+            self.current_file_set = self.files_name[self.current_batch_id * self.batch_size:
+        
