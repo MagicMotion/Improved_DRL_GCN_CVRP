@@ -103,4 +103,7 @@ class DataManager(object):
                 self.current_batch_id = 0
 
             self.current_file_set = self.files_name[self.current_batch_id * self.batch_size:
-                                                    (self.current_batch_id +
+                                                    (self.current_batch_id + 1) * self.batch_size]
+            self.current_batch_id += 1
+
+            # self.current_file_s
