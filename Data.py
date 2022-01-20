@@ -111,4 +111,6 @@ class DataManager(object):
             path_matrix = None
             demand = None
             coordinates = None
-     
+            intial_flag = True
+            type_count = {'guassian':0,'uniform':0}
+           
