@@ -119,4 +119,7 @@ class DataManager(object):
                 if file['instance_type'] == 'guassian':
                     type_count['guassian'] += 1
                 elif file['instance_type'] == 'uniform':
-                    type_
+                    type_count['uniform'] += 1
+
+                if intial_flag:
+                    path_matrix =
