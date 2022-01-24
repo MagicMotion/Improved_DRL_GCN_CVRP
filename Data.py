@@ -124,4 +124,5 @@ class DataManager(object):
                 if intial_flag:
                     path_matrix = np.expand_dims(file['shortest_path_matrix'], axis=0)
                     demand = np.expand_dims(file['demand'], axis=0)
-                    coordinates = np.ex
+                    coordinates = np.expand_dims(file['coordinates'], axis=0)
+                    intial_fla
