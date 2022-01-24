@@ -114,4 +114,7 @@ class DataManager(object):
             intial_flag = True
             type_count = {'guassian':0,'uniform':0}
             for task_name in self.current_file_set:
-                file = sio.loadmat(self.path 
+                file = sio.loadmat(self.path + '/' + task_name)
+
+                if file['instance_type'] == 'guassian':
+                    t
