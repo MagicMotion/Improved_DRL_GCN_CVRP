@@ -117,4 +117,6 @@ class DataManager(object):
                 file = sio.loadmat(self.path + '/' + task_name)
 
                 if file['instance_type'] == 'guassian':
-                    t
+                    type_count['guassian'] += 1
+                elif file['instance_type'] == 'uniform':
+                    type_
