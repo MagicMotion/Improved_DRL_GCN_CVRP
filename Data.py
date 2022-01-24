@@ -122,4 +122,5 @@ class DataManager(object):
                     type_count['uniform'] += 1
 
                 if intial_flag:
-                    path_matrix =
+                    path_matrix = np.expand_dims(file['shortest_path_matrix'], axis=0)
+                    demand = n
