@@ -113,4 +113,5 @@ class DataManager(object):
             coordinates = None
             intial_flag = True
             type_count = {'guassian':0,'uniform':0}
-           
+            for task_name in self.current_file_set:
+                file = sio.loadmat(self.path 
