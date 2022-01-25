@@ -128,4 +128,5 @@ class DataManager(object):
                     intial_flag = False
                 else:
                     path_matrix = np.concatenate((path_matrix, np.expand_dims(file['shortest_path_matrix'], axis=0)),
-              
+                                                 axis=0)
+                    demand = np.concatenate((demand
