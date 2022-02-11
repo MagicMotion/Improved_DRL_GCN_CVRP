@@ -130,4 +130,7 @@ class DataManager(object):
                     path_matrix = np.concatenate((path_matrix, np.expand_dims(file['shortest_path_matrix'], axis=0)),
                                                  axis=0)
                     demand = np.concatenate((demand, np.expand_dims(file['demand'], axis=0)), axis=0)
-                    coordinates = np.concatenate((coordinates, np.expand_dims(file['coordinates'], axis=0)), axis
+                    coordinates = np.concatenate((coordinates, np.expand_dims(file['coordinates'], axis=0)), axis=0)
+
+            self.data = {}
+            self.data['input_dista
