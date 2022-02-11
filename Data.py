@@ -133,4 +133,5 @@ class DataManager(object):
                     coordinates = np.concatenate((coordinates, np.expand_dims(file['coordinates'], axis=0)), axis=0)
 
             self.data = {}
-            self.data['input_dista
+            self.data['input_distance_matrix'] = path_matrix
+            self.data['demand'] = np.squeeze(demand, 
