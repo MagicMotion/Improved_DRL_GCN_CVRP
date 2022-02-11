@@ -134,4 +134,7 @@ class DataManager(object):
 
             self.data = {}
             self.data['input_distance_matrix'] = path_matrix
-            self.data['demand'] = np.squeeze(demand, 
+            self.data['demand'] = np.squeeze(demand, axis=2)
+            self.data['input_pnt'] = coordinates
+
+            print(f"un
