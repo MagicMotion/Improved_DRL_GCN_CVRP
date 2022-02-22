@@ -137,4 +137,7 @@ class DataManager(object):
             self.data['demand'] = np.squeeze(demand, axis=2)
             self.data['input_pnt'] = coordinates
 
-            print(f"un
+            print(f"uniform count: {type_count['uniform']}, guassian count: {type_count['guassian']}\n")
+
+
+          
