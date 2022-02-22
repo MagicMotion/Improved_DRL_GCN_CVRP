@@ -140,4 +140,5 @@ class DataManager(object):
             print(f"uniform count: {type_count['uniform']}, guassian count: {type_count['guassian']}\n")
 
 
-          
+            if len(self.current_file_set) == 1:
+                return self
