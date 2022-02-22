@@ -141,4 +141,7 @@ class DataManager(object):
 
 
             if len(self.current_file_set) == 1:
-                return self
+                return self.current_file_set[0], self.data
+            else:
+                return self.data
+
