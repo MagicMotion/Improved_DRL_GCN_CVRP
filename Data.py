@@ -145,3 +145,6 @@ class DataManager(object):
             else:
                 return self.data
 
+        else:
+            file = sio.loadmat(self.path + '/' + fixed_name)
+            path
