@@ -147,4 +147,5 @@ class DataManager(object):
 
         else:
             file = sio.loadmat(self.path + '/' + fixed_name)
-            path
+            path_matrix = np.expand_dims(file['shortest_path_matrix'], axis=0)
+            demand
