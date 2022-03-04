@@ -151,4 +151,6 @@ class DataManager(object):
             demand = np.expand_dims(file['demand'], axis=0)
             coordinates = np.expand_dims(file['coordinates'], axis=0)
 
-            self.data = {
+            self.data = {}
+            self.data['input_distance_matrix'] = path_matrix
+            self.data['demand'] 
