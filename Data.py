@@ -161,4 +161,7 @@ class DataManager(object):
 
 if __name__ == '__main__':
     args = {}
-    args['data_dir'] = './d
+    args['data_dir'] = './data/'
+    args['random_seed'] = 1
+    args['instance_num'] = 1000
+    args['n_cust']
