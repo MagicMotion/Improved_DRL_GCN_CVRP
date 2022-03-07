@@ -154,4 +154,11 @@ class DataManager(object):
             self.data = {}
             self.data['input_distance_matrix'] = path_matrix
             self.data['demand'] = np.squeeze(demand, axis=2)
-            self.data['input_pnt'] = coo
+            self.data['input_pnt'] = coordinates
+
+
+            return self.data
+
+if __name__ == '__main__':
+    args = {}
+    args['data_dir'] = './d
