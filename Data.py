@@ -168,4 +168,7 @@ if __name__ == '__main__':
     args['capacity'] = 20
     args['batch_size'] = 128
 
-    data
+    datamanager = DataManager(args, data_type='train')
+    datamanager.create_data()
+
+  
