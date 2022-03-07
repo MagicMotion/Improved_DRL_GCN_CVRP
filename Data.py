@@ -164,4 +164,8 @@ if __name__ == '__main__':
     args['data_dir'] = './data/'
     args['random_seed'] = 1
     args['instance_num'] = 1000
-    args['n_cust']
+    args['n_cust'] = 10
+    args['capacity'] = 20
+    args['batch_size'] = 128
+
+    data
