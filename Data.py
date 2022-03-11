@@ -171,4 +171,6 @@ if __name__ == '__main__':
     datamanager = DataManager(args, data_type='train')
     datamanager.create_data()
 
-  
+    while True:
+        data = datamanager.load_task()
+        data
