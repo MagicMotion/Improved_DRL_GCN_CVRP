@@ -83,3 +83,92 @@ class Environment(object):
             print("Info Statistic!")
             for i in range(self.args['actor_decode_len'] + 1):
                 prob = self.prob_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_pnt']:input_data['input_pnt'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix']})
+
+                with printoptions(precision=2, suppress=True):
+                    print('Porbability snap shot step', i, ':\n', prob)
+
+                idxs = self.idxs_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix'],
+                    model.inputs['input_pnt']:input_data['input_pnt'],
+                    self.input_pnt: input_data['input_pnt']})
+
+                # actions = self.actions_trace[i].eval(session=sess, feed_dict={
+                #     self.demand_trace[0]: input_data['demand'],
+                #     model.inputs['input_distance_matrix']: input_data['input_distance_matrix'],
+                #     model.inputs['input_pnt']: input_data['input_pnt'],
+                #     self.input_pnt: input_data['input_pnt']})
+
+                # print('Actor', i, 'step decision:\n ', idxs, '\n', actions)
+
+                print('Actor', i, 'step decision:\n ', idxs)
+
+                demand = (self.demand_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_pnt']:input_data['input_pnt'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix']})).astype(int)
+                print(f'Demand snap shot step {i} :\n{demand}')
+
+                load = (self.load_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_pnt']: input_data['input_pnt'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix']})).astype(int)
+                print('Load snap shot step ', i, ':\n', load)
+
+
+                reward = self.reward_trace[i].eval(session=sess, feed_dict={self.demand_trace[0]: input_data['demand'],
+                                                                            model.inputs['input_distance_matrix']:
+                                                                                input_data['input_distance_matrix'],
+                                                                            model.inputs['input_pnt']: input_data[
+                                                                                'input_pnt'],
+                                                                            self.input_pnt: input_data['input_pnt']})
+                print('Current Reward step ', i, ':\n', reward)
+
+                mask = ~(0 == self.mask_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_pnt']:input_data['input_pnt'],
+                    model.inputs['input_pnt']:input_data['input_pnt'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix']}))
+                print('Next step Mask snap shot ', i, ':\n', mask)
+
+    def response(self,
+                 idx,
+                 beam_parent=None):
+        '''
+        reponse the choice made by actor and updates environment(demands,loads and masks)
+        :param idx: [batch_size x 1],indicate the choice of the actor
+        :param beam_parent: (default=None),whether to use beam search decoder
+        :return: a snapshot of the updated env
+    '''
+        with tf.variable_scope('Environment/Response', reuse=False):
+            # if the environment is used in beam search decoder
+            demand = self.demand_trace[-1]
+            load = self.load_trace[-1]
+
+            if beam_parent is not None:
+                # BatchBeamSeq: [batch_size*beam_width x 1]
+                # [0,1,2,3,...,127,0,1,...127,0,1,...127]
+                batchBeamSeq = tf.expand_dims(tf.tile(tf.cast(tf.range(self.batch_size), tf.int64),
+                                                      [self.beam_width]), 1)
+                # batchedBeamIdx:[batch_size*beam_width]
+                batchedBeamIdx = batchBeamSeq + tf.cast(self.batch_size, tf.int64) * beam_parent
+                # demand:[batch_size*beam_width x sourceL]
+                demand = tf.gather_nd(demand, batchedBeamIdx)
+                # load:[batch_size*beam_width]
+                load = tf.gather_nd(load, batchedBeamIdx, name='Updated_load')
+                # MASK:[batch_size*beam_width x sourceL]
+                # mask = tf.gather_nd(mask,batchedBeamIdx)
+
+            # batched_idx[ [0,a] [1,b] ... [127,z] ]
+            BatchSequence = tf.expand_dims(tf.cast(tf.range(self.batch_beam), tf.int64), 1)
+            batched_idx = tf.concat([BatchSequence, idx], 1)
+
+            # how much the demand is satisfied,here use split delivery mechanism
+            d_sat = tf.minimum(tf.gather_nd(demand, batched_idx), load)
+
+            # update the demand
+            d_scatter = tf.scatter_nd(batched_idx, d_sat, tf.cast(tf.shape(demand), tf.int64))
+            demand = tf.subtract(demand, d_scatter, name='Updeted_demand')
