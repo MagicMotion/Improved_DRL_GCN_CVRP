@@ -244,3 +244,86 @@ class Environment(object):
                         # routes[j].clear()
 
                         routes[j] = [tuple(actions[j])]
+                    elif not signal:
+                        routes[j].append(tuple(actions[j]))
+
+
+        # handle the left sequence which cannot go back to depot
+        for j in range(self.batch_size):
+            if len(routes[j]) > 1 and routes[j][0] != routes[j][1]:
+                solutions[j].append(routes[j])
+
+        fname = 'result.mat'
+        sio.savemat(fname, {'route_num': route_num, 'solutions': solutions})
+
+        return (solutions, route_num)
+
+    # def get_reward(self, sample_solution):
+    #
+    #     """The reward for the VRP task is defined as the
+    #     value of the route length
+    #     note: any sub-sol can be calculated
+    #     Args:
+    #         sample_solution : a list tensor of size decode_len(sourceL) of shape [batch_size x input_dim]
+    #     Returns:
+    #         rewards: tensor of size [batch_size]
+    #
+    #     Example:
+    #         sample_solution = [[[1,1],[2,2]],[[3,3],[4,4]],[[5,5],[6,6]]]
+    #         two instances,two solutions:
+    #         [1,1]->[3,3]->[5,5]
+    #         [2,2]->[4,4]->[6,6]
+    #         sourceL(#customer in a single solution) = 3
+    #         batch_size(#solution) = 2
+    #         input_dim(coordinates) = 2
+    #         sample_solution_tilted[ [[5,5]
+    #                                  [6,6]]
+    #                                 [[1,1]
+    #                                  [2,2]]
+    #                                 [[3,3]
+    #                                  [4,4]] ]
+    #         result: [[11.3173],[11.3173]]
+    #     """
+    #     with tf.variable_scope('Environment/Reward'):
+    #         # make sample_solution of shape [sourceL x batch_size x input_dim]
+    #         sample_solution = tf.stack(sample_solution, 0, name='Solution')
+    #
+    #         # I don't think a loop isn't a right definition
+    #         # sample_solution_rotated = tf.concat((tf.expand_dims(sample_solution[-1], 0),
+    #         #                                     sample_solution[:-1]), 0)
+    #         # get the reward based on the route lengths
+    #         # route_lens_decoded = tf.reduce_sum(tf.pow(tf.reduce_sum(tf.pow(
+    #         #     (sample_solution_rotated - sample_solution), 2), 2), .5), 0, name='Route_length')
+    #
+    #         sample_solution_shifted = tf.concat((tf.expand_dims(sample_solution[0], 0),
+    #                                              sample_solution[:-1]), 0)
+    #
+    #         route_lens_decoded = tf.reduce_sum(tf.pow(tf.reduce_sum(tf.pow(
+    #             (sample_solution_shifted - sample_solution), 2), 2), .5), 0, name='Route_length')
+    #
+    #         return route_lens_decoded
+
+    def get_reward(self,sample_solution):
+        """The reward for the VRP task is defined as the
+        negative value of the route length
+
+        Args:
+            sample_solution : a list tensor of size decode_len of shape [batch_size x input_dim]
+            demands satisfied: a list tensor of size decode_len of shape [batch_size]
+
+        Returns:
+            rewards: tensor of size [batch_size]
+
+        Example:
+            sample_solution = [[[1,1],[2,2]],[[3,3],[4,4]],[[5,5],[6,6]]]
+            sourceL = 3
+            batch_size = 2
+            input_dim = 2
+            sample_solution_tilted[ [[5,5]
+                                                        #  [6,6]]
+                                                        # [[1,1]
+                                                        #  [2,2]]
+                                                        # [[3,3]
+                                                        #  [4,4]] ]
+        """
+        # make init_solution of shape [sourceL x batch_size x input_dim]
