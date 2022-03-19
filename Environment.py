@@ -172,3 +172,75 @@ class Environment(object):
             # update the demand
             d_scatter = tf.scatter_nd(batched_idx, d_sat, tf.cast(tf.shape(demand), tf.int64))
             demand = tf.subtract(demand, d_scatter, name='Updeted_demand')
+
+            # update load
+            load -= d_sat
+
+            # refill the truck -- idx: [10;9;10] -> load_flag: [1 0 1]
+            load_flag = tf.squeeze(tf.cast(tf.equal(idx, self.depot_id), tf.float32), 1)
+            load = tf.add(tf.multiply(load, 1 - load_flag), tf.multiply(load_flag, self.capacity), name='Updated_Load')
+
+            # mask for customers with zero demand
+            mask = tf.concat([tf.cast(tf.equal(demand, 0), tf.float32)[:, :-1],
+                              tf.zeros([self.batch_beam, 1])], 1)
+
+            # mask if load= 0
+            # mask if in depot and there is still a demand
+            mask = tf.add(mask, tf.concat([tf.tile(tf.expand_dims(tf.cast(tf.equal(load, 0),
+                                                                          tf.float32), 1), [1, self.n_customers]),
+                                           tf.expand_dims(
+                                               tf.multiply(tf.cast(tf.greater(tf.reduce_sum(demand, 1), 0), tf.float32),
+                                                           tf.squeeze(
+                                                               tf.cast(tf.equal(idx, self.depot_id), tf.float32))), 1)],
+                                          1), name='Updated_mask')
+
+            self.demand_trace.append(demand)
+            self.load_trace.append(load)
+            self.mask_trace.append(mask)
+
+            return tf.reduce_sum(demand, name='Left_demand', axis=1)
+
+    def get_routes(self, input_data, model, sess):
+        solutions = [[]] * self.batch_size
+        routes = [[]] * self.batch_size
+        route_num = [0] * self.batch_size
+        #first times empty of demand should be handle
+        first_empty = [False]*self.batch_size
+
+        for i in range(self.args['actor_decode_len'] + 1):
+            actions = self.actions_trace[i].eval(session=sess, feed_dict={
+                self.demand_trace[0]: input_data['demand'],
+                model.inputs['input_distance_matrix']: input_data['input_distance_matrix'],
+                model.inputs['input_pnt']: input_data['input_pnt'],
+                self.input_pnt: input_data['input_pnt']})
+
+            if i == 0:
+                for j in range(self.batch_size):
+                    routes[j] = [tuple(actions[j])]
+            else:
+                idxs = self.idxs_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix'],
+                    model.inputs['input_pnt']: input_data['input_pnt'],
+                    self.input_pnt: input_data['input_pnt']})
+
+                ending_signal = (idxs == self.depot_id).squeeze(axis=1)
+
+                demand = (self.demand_trace[i].eval(session=sess, feed_dict={
+                    self.demand_trace[0]: input_data['demand'],
+                    model.inputs['input_pnt']: input_data['input_pnt'],
+                    model.inputs['input_distance_matrix']: input_data['input_distance_matrix']})).astype(int)
+
+                for j, signal in enumerate(ending_signal):
+                    if signal and (not first_empty[j]):
+                        if all(demand[j] == 0):
+                            first_empty[j] = True
+                        routes[j].append(tuple(actions[j]))
+                        if route_num[j] == 0:
+                            solutions[j] = [routes[j]]
+                        else:
+                            solutions[j].append(routes[j])
+                        route_num[j] += 1
+                        # routes[j].clear()
+
+                        routes[j] = [tuple(actions[j])]
