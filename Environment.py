@@ -327,3 +327,28 @@ class Environment(object):
                                                         #  [4,4]] ]
         """
         # make init_solution of shape [sourceL x batch_size x input_dim]
+
+        # make sample_solution of shape [sourceL x batch_size x input_dim]
+        if not sample_solution:
+            return tf.zeros(shape=self.batch_size,dtype=tf.float32)
+
+        sample_solution = tf.stack(sample_solution, 0)
+
+        sample_solution_tilted = tf.concat((tf.expand_dims(sample_solution[-1], 0),
+                                            sample_solution[:-1]), 0)
+        # get the reward based on the route lengths
+
+        route_lens_decoded = tf.reduce_sum(tf.pow(tf.reduce_sum(tf.pow( \
+            (sample_solution_tilted - sample_solution), 2), 2), .5), 0)
+        return route_lens_decoded
+
+
+    def trace_actor_act(self, idxs, actions):
+        self.actions_trace = actions
+        self.idxs_trace = idxs
+
+    def record_reward(self, rewards):
+        self.reward_trace.append(rewards)
+
+    def record_prob(self, prob):
+        self.prob_trace.append(prob)
