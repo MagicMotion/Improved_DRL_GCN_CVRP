@@ -183,3 +183,95 @@ class Actor(Module):
 
                 env.record_prob(prob)
                 left_demand = env.response(idx, beam_parent)
+
+                # demand_penalty = tf.divide(tf.add(left_demand, demand_penalty), original_demand, name='demand_penalty')
+                # env.record_reward(tf.add(env.get_reward(actions_tmp), demand_penalty, name='reward'))
+
+                # env.record_reward(env.get_reward(actions_tmp))
+                env.record_reward(env.get_reward(actions_tmp[1:]))
+
+            if decode_type == 'beam_search':
+                # find paths of the beam search
+                tmplst = []
+                tmpind = [BatchSequence]
+                for k in reversed(range(len(actions_tmp))):
+                    tmplst = [tf.gather_nd(actions_tmp[k], tmpind[-1])] + tmplst
+                    tmpind += [tf.gather_nd(
+                        (batchBeamSeq + tf.cast(batch_size, tf.int64) * beam_path[k]), tmpind[-1])]
+                actions = tmplst
+            else:
+                actions = actions_tmp
+
+            env.trace_actor_act(idxs, actions)
+            # length_reward = env.get_reward(sample_solution=actions)
+            length_reward = env.get_reward(sample_solution=actions[1:])
+
+
+            # rewards = tf.add(length_reward, demand_penalty)
+            rewards = length_reward
+
+            self.outputs = {'logprobs': logprobs,
+                            'actions': actions,
+                            'idxs': idxs,
+                            'probs': probs,
+                            'rewards': rewards}
+
+        if self.logging == True:
+            self._log()
+
+    def _log(self):
+        if self.scope == '':
+            scope = self.name
+        else:
+            scope = self.scope + '/' + self.name
+        for var in tf.trainable_variables(scope=scope):
+            if self.scope == '':
+                tf.summary.histogram(var.name, var)
+            else:
+                tf.summary.histogram(var.name[len(self.scope) + 1:], var)
+
+class ActorAttentionLayer(object):
+    """A generic attention module for the attention in vrp model"""
+    '''This layer consider the dynamic info of the env'''
+
+    def __init__(self, dim, name, scope='', use_tanh=False, C=10):
+        self.call_time = 0
+        self.use_tanh = use_tanh
+        self.name = name
+        self.scope = scope
+
+        with tf.variable_scope(self.name):
+            # self.v: is a variable with shape [1 x dim]
+            self.v = tf.get_variable(name='v_vector', shape=[1, dim],
+                                     initializer=tf.contrib.layers.xavier_initializer())
+            self.v = tf.expand_dims(self.v, 2, name='expand_v_vector')
+
+        # in fact, the high level class will add prefix automatically, no matter whether it's blocked within the viriable scope
+        # I write them in the variable scope just for easy to read
+        self.emb_d = tf.layers.Conv1D(dim, 1, name=self.name + 'emb_d')  # conv1d
+        self.emb_ld = tf.layers.Conv1D(dim, 1, name=self.name + 'emb_ld')  # conv1d_2
+
+        self.project_d = tf.layers.Conv1D(dim, 1, name=self.name + 'proj_d')  # conv1d_1
+        self.project_ld = tf.layers.Conv1D(dim, 1, name=self.name + 'proj_ld')  # conv1d_3
+        self.project_query = tf.layers.Dense(dim, name=self.name + 'proj_q')  #
+        self.project_ref = tf.layers.Conv1D(dim, 1, name=self.name + 'proj_ref')  # conv1d_4
+
+        self.C = C  # tanh clip parameter
+        self.tanh = tf.nn.tanh
+
+    def __call__(self, query, ref, env):
+        """
+        This function gets a query tensor and ref rensor and returns the logit op.
+        Args:
+            query: is the hidden state of the decoder at the current
+                time step. [batch_size x dim]
+            ref: the set of hidden states from the encoder.
+                [batch_size x max_time x dim]
+
+        Returns:
+            e: convolved ref with shape [batch_size x max_time x dim]
+            logits: [batch_size x max_time]
+        """
+        # get the current demand and load values from environment
+        self.call_time += 1
+        # demand = tf.identity(env.demand,name='Actor/' + self.name + '/demand')
