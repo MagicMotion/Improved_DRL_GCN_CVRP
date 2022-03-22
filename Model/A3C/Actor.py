@@ -113,3 +113,73 @@ class Actor(Module):
                     def my_multinomial():
                         prob_idx = tf.stop_gradient(prob)
                         prob_idx_cum = tf.cumsum(prob_idx, 1)
+                        rand_uni = tf.tile(tf.random_uniform([batch_size, 1]), [1, env.n_nodes])
+                        # sorted_ind : [[0,1,2,3..],[0,1,2,3..] , ]
+                        sorted_ind = tf.cast(tf.tile(tf.expand_dims(tf.range(env.n_nodes), 0), [batch_size, 1]),
+                                             tf.int64)
+                        tmp = tf.multiply(tf.cast(tf.greater(prob_idx_cum, rand_uni), tf.int64), sorted_ind) + \
+                              10000 * tf.cast(tf.greater_equal(rand_uni, prob_idx_cum), tf.int64)
+
+                        idx = tf.expand_dims(tf.argmin(tmp, 1), 1)
+                        return tmp, idx
+
+                    tmp, idx = my_multinomial()
+                    # check validity of tmp -> True or False -- True mean take a new sample
+                    tmp_check = tf.cast(
+                        tf.reduce_sum(tf.cast(tf.greater(tf.reduce_sum(tmp, 1), (10000 * env.n_nodes) - 1),
+                                              tf.int32)), tf.bool)
+                    tmp, idx = tf.cond(tmp_check, my_multinomial, lambda: (tmp, idx))
+                elif decode_type == 'beam_search':
+                    if i == 0:
+                        # BatchBeamSeq: [batch_size*beam_width x 1]
+                        # [0,1,2,3,...,127,0,1,...],
+                        batchBeamSeq = tf.expand_dims(tf.tile(tf.cast(tf.range(batch_size), tf.int64),
+                                                              [self.beam_width]), 1)
+                        beam_path = []
+                        log_beam_probs = []
+                        # in the initial decoder step, we want to choose beam_width different branches
+                        # log_beam_prob: [batch_size, sourceL]
+                        log_beam_prob = tf.log(tf.split(prob, num_or_size_splits=self.beam_width, axis=0)[0])
+
+                    elif i > 0:
+                        log_beam_prob = tf.log(prob) + log_beam_probs[-1]
+                        # log_beam_prob:[batch_size, beam_width*sourceL]
+                        log_beam_prob = tf.concat(tf.split(log_beam_prob, num_or_size_splits=self.beam_width, axis=0),
+                                                  1)
+
+                    # topk_prob_val,topk_logprob_ind: [batch_size, beam_width]
+                    topk_logprob_val, topk_logprob_ind = tf.nn.top_k(log_beam_prob, self.beam_width)
+
+                    # topk_logprob_val , topk_logprob_ind: [batch_size*beam_width x 1]
+                    topk_logprob_val = tf.transpose(tf.reshape(
+                        tf.transpose(topk_logprob_val), [1, -1]))
+
+                    topk_logprob_ind = tf.transpose(tf.reshape(
+                        tf.transpose(topk_logprob_ind), [1, -1]))
+
+                    # idx,beam_parent: [batch_size*beam_width x 1]
+                    idx = tf.cast(topk_logprob_ind % env.n_nodes, tf.int64)  # Which city in route.
+                    beam_parent = tf.cast(topk_logprob_ind // env.n_nodes, tf.int64)  # Which hypothesis it came from.
+
+                    # batchedBeamIdx:[batch_size*beam_width]
+                    batchedBeamIdx = batchBeamSeq + tf.cast(batch_size, tf.int64) * beam_parent
+                    prob = tf.gather_nd(prob, batchedBeamIdx)
+
+                    beam_path.append(beam_parent)
+                    log_beam_probs.append(topk_logprob_val)
+
+                batched_idx = tf.concat([BatchSequence, idx], 1)
+
+                decoder_input = tf.expand_dims(tf.gather_nd(
+                    tf.tile(self.embedding_input, [self.beam_width, 1, 1]), batched_idx), 1)
+
+                logprob = tf.log(tf.gather_nd(prob, batched_idx))
+                probs.append(prob)
+                idxs.append(idx)
+                logprobs.append(logprob)
+
+                action = tf.gather_nd(tf.tile(env.input_pnt, [self.beam_width, 1, 1]), batched_idx)
+                actions_tmp.append(action)
+
+                env.record_prob(prob)
+                left_demand = env.response(idx, beam_parent)
