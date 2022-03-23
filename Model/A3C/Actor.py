@@ -275,3 +275,90 @@ class ActorAttentionLayer(object):
         # get the current demand and load values from environment
         self.call_time += 1
         # demand = tf.identity(env.demand,name='Actor/' + self.name + '/demand')
+        demand = tf.identity(env.demand_trace[-1], name=self.name + '/demand')
+
+        load = tf.identity(env.load_trace[-1], name=self.name + '/load')
+        # load = env.load
+        max_time = tf.identity(tf.shape(demand)[1], name=self.name + '/maxtime')
+
+        # embed demand and project it
+        # emb_d:[batch_size x max_time x dim ]
+        emb_d = tf.identity(self.emb_d(tf.expand_dims(demand, 2)), name=self.name + '/new_emb_d')
+        # d:[batch_size x max_time x dim ]
+        d = tf.identity(self.project_d(emb_d), name=self.name + '/new_proj_d')
+
+        # embed load - demand
+        # emb_ld:[batch_size*beam_width x max_time x hidden_dim]
+        emb_ld = tf.identity(self.emb_ld(tf.expand_dims(tf.tile(tf.expand_dims(load, 1), [1, max_time]) -
+                                                        demand, 2)), name=self.name + '/new_emb_ld')
+        # ld:[batch_size*beam_width x hidden_dim x max_time ]
+        ld = tf.identity(self.project_ld(emb_ld), name=self.name + '/new_proj_ld')
+
+        # expanded_q,e: [batch_size x max_time x dim]
+        e = tf.identity(self.project_ref(ref), name=self.name + '/new_proj_ref')
+        q = tf.identity(self.project_query(query), name=self.name + '/new_proj_q')  # [batch_size x dim]
+        expanded_q = tf.tile(tf.expand_dims(q, 1), [1, max_time, 1], name=self.name + '/expanded_proj_q')
+
+        with tf.variable_scope(self.name):
+            # v_view:[batch_size x dim x 1]
+            v_view = tf.tile(self.v, [tf.shape(e)[0], 1, 1])
+
+            # u : [batch_size x max_time x dim] * [batch_size x dim x 1] =
+            #       [batch_size x max_time]
+            u = tf.squeeze(tf.matmul(self.tanh(expanded_q + e + d + ld), v_view), 2)
+
+            if self.use_tanh:
+                logits = self.C * self.tanh(u)
+            else:
+                logits = u
+
+            return e, logits
+
+
+class DecodeStep(object):
+    def __init__(self, args, scope, GlimpseLayer, PointerLayer):
+        self.hidden_dim = args['actor_hidden_dim']
+        self.use_tanh = args['actor_use_tanh']
+        self.tanh_exploration = args['actor_tanh_exploration']
+        self.n_glimpses = args['actor_n_glimpses']
+        self.mask_glimpses = args['actor_mask_glimpses']
+        self.mask_pointer = args['actor_mask_pointer']
+
+        self.scope = scope
+
+        self.BIGNUMBER = 100000.
+
+        # create glimpse and attention instances as well as tf.variables.
+        ## create a list of class instances
+        self.glimpses = [None for _ in range(self.n_glimpses)]
+        for i in range(self.n_glimpses):
+            self.glimpses[i] = GlimpseLayer(self.hidden_dim,
+                                            use_tanh=False,
+                                            name="Decoder_Attention/Glimpse_" + str(i) + "_Layer", scope=self.scope)
+
+        # build TF variables required for pointer
+        self.pointer = PointerLayer(self.hidden_dim,
+                                    use_tanh=self.use_tanh,
+                                    C=self.tanh_exploration,
+                                    name="Decoder_Attention/Pointer_Layer", scope=self.scope)
+
+
+class RNNDecodeStep(DecodeStep):
+    '''
+    Decodes the sequence. It keeps the decoding history in a RNN.
+    '''
+
+    def __init__(self, args, scope):
+        '''
+        This class does one-step of decoding which uses RNN for storing the sequence info.
+        Inputs:
+            ClAttention:    the class which is used for attention
+            hidden_dim:     hidden dimension of RNN
+            use_tanh:       whether to use tanh exploration or not
+            tanh_exploration: parameter for tanh exploration
+            n_glimpses:     number of glimpses
+            mask_glimpses:  whether to use masking for the glimpses or not
+            mask_pointer:   whether to use masking for the pointers or not
+            forget_bias:    forget bias of LSTM
+            rnn_layers:     number of LSTM layers
+            _scope:         variable scope
