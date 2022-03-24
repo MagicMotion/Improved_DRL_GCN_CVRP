@@ -362,3 +362,72 @@ class RNNDecodeStep(DecodeStep):
             forget_bias:    forget bias of LSTM
             rnn_layers:     number of LSTM layers
             _scope:         variable scope
+
+        '''
+        # build attention & pointer layers
+        super(RNNDecodeStep, self).__init__(args, scope=scope, GlimpseLayer=ActorAttentionLayer,
+                                            PointerLayer=ActorAttentionLayer)
+
+        self.forget_bias = args['actor_forget_bias']
+        self.rnn_layer_num = args['actor_rnn_layer_num']
+        self.hidden_dim = args['actor_hidden_dim']
+        self.keep_prob = args['keep_prob']
+
+        # build a multilayer LSTM cell
+        # LSTM is used to handle static info of the env
+        self.rnn_layers = []
+        with tf.variable_scope('LSTM/LSTM_Template_Cell'):
+            for i in range(self.rnn_layer_num):
+                single_cell = tf.nn.rnn_cell.BasicLSTMCell(self.hidden_dim,
+                                                           forget_bias=self.forget_bias)
+                single_cell = tf.nn.rnn_cell.DropoutWrapper(
+                    cell=single_cell, input_keep_prob=self.keep_prob)
+
+                self.rnn_layers.append(single_cell)
+
+            self.cell = tf.nn.rnn_cell.MultiRNNCell(self.rnn_layers)
+
+    def step(self,
+             decoder_inp,
+             context,
+             Env,
+             decoder_state=None):
+        '''
+        get logits and probs at a given decoding step.
+        Inputs:
+            decoder_input: Input of the decoding step with shape [batch_size x embedding_dim]
+            context: context vector to use in attention
+            Env: an instance of the environment
+            decoder_state: The state of the LSTM cell. It can be None when we use a decoder without
+                LSTM cell.
+        Returns:
+            logit: logits with shape [batch_size x max_time]
+            prob: probabilities for the next location visit with shape of [batch_size x max_time]
+            logprob: log of probabilities
+            decoder_state: updated state of the LSTM cell
+        '''
+
+        logit, decoder_state = self.get_logit_op(
+            decoder_inp,
+            context,
+            Env,
+            decoder_state)
+
+        logprob = tf.nn.log_softmax(logit)
+        prob = tf.exp(logprob)
+
+        return logit, prob, logprob, decoder_state
+
+    def get_logit_op(self,
+                     decoder_inp,
+                     context,
+                     Env,
+                     decoder_state):
+        """
+        For a given input to decoder, returns the logit op and new decoder_state.
+        Input:
+            decoder_inp: it is the input problem with dimensions [batch_size x dim].
+                        Usually, it is the embedded problem with dim = embedding_dim.
+            context: the context vetor from the encoder. It is usually the output of rnn with
+                      shape [batch_size x max_time x dim]
+            Env: an instance of the environment. It should have:
