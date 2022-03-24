@@ -194,3 +194,7 @@ if __name__ == '__main__':
             summ = sess.run(summaries, feed_dict={
                 model.embedding_input : input_data['input_distance_matrix'],
                 environment.input_pnt: input_data['input_pnt'],
+                environment.input_distance_matrix: input_data['input_distance_matrix'],
+                environment.demand_trace[0]: input_data['demand']})
+
+            writer.add_summary(summ, global_step=i)
