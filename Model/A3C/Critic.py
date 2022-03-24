@@ -108,3 +108,89 @@ class CriticAttentionLayer(object):
         self.call_time += 1
         demand = tf.identity(env.demand_trace[-1],name= self.name + '/demand')
         max_time = tf.identity(tf.shape(demand)[1],name= self.name + '/maxtime')
+
+        # embed demand and project it
+        # emb_d:[batch_size x max_time x dim ]
+        emb_d = tf.identity(self.emb_d(tf.expand_dims(demand, 2)),name=self.name + '/new_emb_d')
+        # d:[batch_size x max_time x dim ]
+        d = tf.identity(self.project_d(emb_d),name=self.name+'/new_proj_d')
+
+        # expanded_q,e: [batch_size x max_time x dim]
+        e = tf.identity(self.project_ref(ref),name=self.name+'/new_proj_ref')
+        q = tf.identity(self.project_query(query),name=self.name+'/new_proj_q')  # [batch_size x dim]
+        expanded_q = tf.tile(tf.expand_dims(q, 1), [1, max_time, 1],name=self.name+'/expended_proj_q')
+
+        # v_view:[batch_size x dim x 1]
+        v_view = tf.tile(self.v, [tf.shape(e)[0], 1, 1])
+
+        # u : [batch_size x max_time x dim] * [batch_size x dim x 1] =
+        #       [batch_size x max_time]
+        u = tf.squeeze(tf.matmul(self.tanh(expanded_q + e + d), v_view), 2)
+
+        if self.use_tanh:
+            logits = self.C * self.tanh(u)
+        else:
+            logits = u
+
+        return e, logits
+
+
+if __name__ == '__main__':
+    args = {}
+
+    args['trainer_save_interval'] = 10000
+    args['trainer_inspect_interval'] = 10000
+    args['trainer_model_dir'] = 'model_trained/'
+    args['trainer_total_epoch'] = 100000
+
+    args['n_customers'] = 10
+    args['data_dir'] = 'data/'
+    args['random_seed'] = 1
+    args['instance_num'] = 10000
+    args['capacity'] = 20
+    args['batch_size'] = 128
+
+    args['actor_net_lr'] = 0.01
+    args['critic_net_lr'] = 0.01
+    args['gcn_net_lr'] = 0.01
+    args['max_grad_norm'] = 10
+    args['keep_prob'] = 0.1
+
+    args['critic_rnn_layers'] = 3
+    args['critic_hidden_dim'] = 128
+    args['critic_rnn_layers'] = 4
+    args['critic_n_process_blocks'] = 3
+
+
+    with tf.variable_scope('Input'):
+        input_data = {
+            'input_pnt': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1, 2],
+                                        name='coordinates'),
+            'input_distance_matrix': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1,
+                                                                       args['n_customers'] + 1],
+                                                    name='distance_matrix'),
+            'demand': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1], name='demand')
+        }
+
+
+    datamanager = DataManager(args, 'train')
+    datamanager.create_data()
+
+    environment = Environment(args)
+    model = Critic(args, input_data['input_distance_matrix'], env=environment, logging=True)
+
+    init = tf.initialize_all_variables()
+
+    writer = tf.summary.FileWriter('./graph/', tf.get_default_graph())
+    summaries = tf.summary.merge_all()
+
+
+    for i in range(1):
+        with tf.Session() as sess:
+            sess.run(init)
+
+            input_data = datamanager.load_task()
+
+            summ = sess.run(summaries, feed_dict={
+                model.embedding_input : input_data['input_distance_matrix'],
+                environment.input_pnt: input_data['input_pnt'],
