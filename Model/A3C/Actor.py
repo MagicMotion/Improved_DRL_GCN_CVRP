@@ -505,3 +505,51 @@ if __name__ == '__main__':
     # {'gcn','linear_embedding'}
     args['embedding_type'] = 'gcn'
     # args['linear_embedding_num_units'] = 128
+
+    args['actor_hidden_dim'] = 128
+    args['actor_use_tanh'] = False
+    args['actor_tanh_exploration'] = 10
+    args['actor_n_glimpses'] = 3
+    args['actor_mask_glimpses'] = False
+    args['actor_mask_pointer'] = True
+    args['actor_forget_bias'] = True
+    args['actor_rnn_layer_num'] = 3
+    args['actor_decode_len'] = 16
+
+
+    with tf.variable_scope('Input'):
+        input_data = {
+            'input_pnt': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1, 2],
+                                        name='coordinates'),
+            'input_distance_matrix': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1,
+                                                                       args['n_customers'] + 1],
+                                                    name='distance_matrix'),
+            'demand': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1], name='demand')
+        }
+
+
+    datamanager = DataManager(args, 'train')
+    datamanager.create_data()
+
+    environment = Environment(args)
+    model = Actor(args, input_data['input_distance_matrix'], env=environment, logging=True)
+
+    init = tf.initialize_all_variables()
+
+    writer = tf.summary.FileWriter('./graph/', tf.get_default_graph())
+    summaries = tf.summary.merge_all()
+
+
+    for i in range(1):
+        with tf.Session() as sess:
+            sess.run(init)
+
+            input_data = datamanager.load_task()
+
+            summ = sess.run(summaries, feed_dict={
+                model.embedding_input : input_data['input_distance_matrix'],
+                environment.input_pnt: input_data['input_pnt'],
+                environment.input_distance_matrix: input_data['input_distance_matrix'],
+                environment.demand_trace[0]: input_data['demand']})
+
+            writer.add_summary(summ, global_step=i)
