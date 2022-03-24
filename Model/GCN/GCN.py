@@ -63,3 +63,80 @@ class GCN(Module):
         if layer_name not in self._LAYER_UIDS:
             self._LAYER_UIDS[layer_name] = 1
             return 1
+        else:
+            self._LAYER_UIDS[layer_name] += 1
+            return self._LAYER_UIDS[layer_name]
+
+    def build(self):
+        self.layers = []
+        self.activations = []
+
+        # global unique layer ID dictionary for layer name assignment
+        self._LAYER_UIDS = {}
+
+        with tf.variable_scope(self.name):
+            self._build()
+
+            # start build compute data flow between layers
+            layer_id = 0
+            self.activations.append(self.initial_vertex_state)
+            for layer in self.layers:
+                if layer_id < len(self.layers) - 1:
+                    hidden = tf.nn.relu(layer(self.activations[-1]))
+                    self.activations.append(hidden)
+                    layer_id = layer_id + 1
+                else:
+                    hidden = layer(self.activations[-1])
+                    self.activations.append(hidden)
+                    layer_id = layer_id + 1
+
+            # activations[-1]:[batch x n_nodes x diver_number*vertex_dim]
+            # outputs:[batch x n_nodes x vertex_dim]
+            # Note: These graph convs share variables
+            with tf.variable_scope('raw_output'):
+                self.raw_outputs = self.activations[-1][:, :, :self.vertex_dim]
+
+                for out_id in range(1, self.diver_num):
+                    self.raw_outputs = self.raw_outputs + self.activations[-1][:, :,
+                                                          self.vertex_dim * out_id: self.vertex_dim * (out_id + 1)]
+
+                # finally output is the average of different draph
+                self.raw_outputs = tf.divide(self.raw_outputs, tf.cast(self.diver_num, tf.float32), name='average')
+
+            self.outputs = tf.identity(self.raw_outputs, name='output')
+
+    def _build(self):
+        '''
+        build the basic frame of GCN,
+        but don't specify compute data flow between different layer
+        '''
+        self.layers.append(GraphConvolutionLayer(input_dim=self.vertex_dim,
+                                                 output_dim=self.latent_layer_dim,
+                                                 support=self.supports,
+                                                 act=tf.nn.relu,
+                                                 keep_prob=self.args['keep_prob'],
+                                                 name=('graphconvulation_' + str(
+                                                     self.get_layer_uid('graphconvulation'))),
+                                                 scope= self.scope+'/'+self.name,
+                                                 logging=self.logging))
+
+        for i in range(self.layer_num - 2):
+            self.layers.append(GraphConvolutionLayer(input_dim=self.latent_layer_dim,
+                                                     output_dim=self.latent_layer_dim,
+                                                     support=self.supports,
+                                                     act=tf.nn.relu,
+                                                     keep_prob=self.args['keep_prob'],
+                                                     name=('graphconvulation_' + str(
+                                                         self.get_layer_uid('graphconvulation'))),
+                                                     scope=self.scope + '/'+self.name,
+                                                     logging=self.logging))
+
+        self.layers.append(GraphConvolutionLayer(input_dim=self.latent_layer_dim,
+                                                 output_dim=self.vertex_dim * self.diver_num,
+                                                 support=self.supports,
+                                                 act=lambda x: x,
+                                                 keep_prob=self.args['keep_prob'],
+                                                 name=('graphconvulation_' + str(
+                                                     self.get_layer_uid('graphconvulation'))),
+                                                 scope= self.scope+'/'+self.name,
+                                                 logging=self.logging))
