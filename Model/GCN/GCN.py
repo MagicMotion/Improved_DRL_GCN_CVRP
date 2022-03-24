@@ -140,3 +140,72 @@ class GCN(Module):
                                                      self.get_layer_uid('graphconvulation'))),
                                                  scope= self.scope+'/'+self.name,
                                                  logging=self.logging))
+
+def simple_polynomials(adj, k, batch_size):
+    """Calculate polynomials up to order k. Return a list of sparse matrices (tuple representation)."""
+    # print("Calculating polynomials up to order {}...".format(k))
+
+    adj_normalized = normalize_adj(adj)
+
+    # laplacian = None
+    # eye = None
+    # first_flag = True
+    #
+    # for i in range(batch_size):
+    #     if first_flag:
+    #         laplacian = tf.expand_dims(tf.eye(tf.cast(adj.shape[1],tf.int32)) - adj_normalized[i,:,:],axis=0)
+    #         eye = tf.expand_dims(tf.eye(tf.cast(adj.shape[1],tf.int32)),axis=0)
+    #         first_flag = False
+    #     else:
+    #         laplacian = tf.concat((laplacian,tf.expand_dims(tf.eye(tf.cast(adj.shape[1],tf.int32)) - adj_normalized[i,:,:],axis=0)),axis=0)
+    #         eye = tf.concat((eye,tf.expand_dims(tf.eye(tf.cast(adj.shape[1],tf.int32)),axis=0)),axis=0)
+
+    laplacian = None
+    first_flag = True
+
+    # no self-connect loop
+    laplacian = adj_normalized
+
+    t_k = list()
+    # t_k.append(tf.convert_to_tensor(eye,tf.float32))
+    # t_k.append(tf.convert_to_tensor(laplacian,tf.float32))
+
+    # t_k.append(eye)
+    t_k.append(laplacian)
+
+    for i in range(1, k):
+        # Hadamard product
+        t_new = tf.multiply(t_k[-1], laplacian)
+        # t_k.append(tf.convert_to_tensor(t_new),tf.float32)
+        t_k.append(t_new)
+
+    return t_k
+
+
+def normalize_adj(adj):
+    """Symmetrically normalize adjacency matrix."""
+    # with np.errstate(divide='ignore', invalid='ignore'):
+    #     inverse_adj = np.where(adj == 0, 0, 1 / adj)
+
+    inverse_adj = tf.divide(1, adj)
+    inverse_adj = tf.where(tf.equal(inverse_adj, tf.multiply(tf.ones_like(inverse_adj), np.inf)),
+                           tf.zeros_like(inverse_adj), inverse_adj)
+
+    row_sum = tf.reduce_sum(inverse_adj, axis=2)
+    norm_inv_adj = inverse_adj / tf.expand_dims(row_sum, axis=2)
+    return norm_inv_adj
+
+
+if __name__ == '__main__':
+    args = {}
+    args['n_customers'] = 10
+    args['GCN_max_degree'] = 2
+    args['GCN_vertex_dim'] = 32
+    args['GCN_latent_layer_dim'] = 128
+    args['GCN_layer_num'] = 5
+    args['GCN_diver_num'] = 15
+    args['batch_size'] = 1
+    args['data_dir'] = '../data/'
+    args['random_seed'] = 1
+    args['instance_num'] = 1000
+    args['capacity'] = 20
