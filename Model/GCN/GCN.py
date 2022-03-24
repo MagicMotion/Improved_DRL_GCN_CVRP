@@ -209,3 +209,45 @@ if __name__ == '__main__':
     args['random_seed'] = 1
     args['instance_num'] = 1000
     args['capacity'] = 20
+    args['keep_prob'] = 0.1
+
+    with tf.variable_scope('Input'):
+        input_data = {
+            'input_pnt': tf.placeholder(tf.float32, shape=[args['batch_size'], 11, 2], name='coordinates'),
+            'input_distance_matrix': tf.placeholder(tf.float32, shape=[args['batch_size'], 11, 11],
+                                                    name='distance_matrix'),
+            'demand': tf.placeholder(tf.float32, shape=[args['batch_size'], 11], name='demand')
+        }
+
+    prototype = GCN(args, input_data, logging=True)
+
+    datamanager = DataManager(args, 'train')
+    datamanager.create_data()
+
+    init = tf.initialize_all_variables()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+
+
+    writer = tf.summary.FileWriter('./graph/', tf.get_default_graph())
+    summaries = tf.summary.merge_all()
+
+    for i in range(1):
+        with tf.Session(config=config) as sess:
+            sess.run(init)
+
+
+            _,train_data = datamanager.load_task()
+
+            print('Initial vertex state:\n', sess.run(prototype.initial_vertex_state, feed_dict={
+                prototype.adj_inputs: train_data['input_distance_matrix']}))
+
+            print('Support matrix Degree 1:\n',
+                  sess.run(prototype.supports[0], feed_dict={prototype.adj_inputs: train_data['input_distance_matrix']}))
+
+            print('Support matrix Degree 2:\n',
+                  sess.run(prototype.supports[1], feed_dict={prototype.adj_inputs: train_data['input_distance_matrix']}))
+
+
+            summ = sess.run(summaries,feed_dict={prototype.adj_inputs: train_data['input_distance_matrix']})
+            writer.add_summary(summ, global_step=i)
