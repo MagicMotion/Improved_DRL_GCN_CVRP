@@ -431,3 +431,77 @@ class RNNDecodeStep(DecodeStep):
             context: the context vetor from the encoder. It is usually the output of rnn with
                       shape [batch_size x max_time x dim]
             Env: an instance of the environment. It should have:
+                Env.mask: a matrix used for masking the logits and glimpses. It is with shape
+                         [batch_size x max_time]. Zeros in this matrix means not-masked nodes. Any
+                         positive number in this mask means that the node cannot be selected as
+                         the next decision point.
+            decoder_state: The state as a list of size rnn_layers, and each element is a
+                    LSTMStateTuples with  x 2 tensors with dimension of [batch_size x hidden_dim].
+                    The first one corresponds to c and the second one is h.
+        Returns:
+            logit: the logits which will used by decoder for producing a solution. It has shape
+                    [batch_size x max_time].
+            decoder_state: the update decoder state.
+        """
+
+        #         decoder_inp = tf.reshape(decoder_inp,[-1,1,self.hidden_dim])
+        _, decoder_state = tf.nn.dynamic_rnn(self.cell,
+                                             decoder_inp,
+                                             initial_state=decoder_state,
+                                             scope='LSTM/LSTM_decode_step')
+
+        hy = tf.identity(decoder_state[-1].h, name='LSTM/LSTM_decode_step/State/hidden_state')
+
+        # glimpses
+        for i in range(self.n_glimpses):
+            # ref: [batch_size x max_time x hidden_dim], logit : [batch_size x max_time]
+            ref, logit = self.glimpses[i](hy, context, Env)
+            if self.mask_glimpses:
+                logit -= self.BIGNUMBER * Env.mask_trace[-1]
+            prob = tf.nn.softmax(logit)
+
+            # hy : [batch_size x 1 x max_time ] * [batch_size x max_time x hidden_dim] ->
+            # [batch_size x hidden_dim ]
+            hy = tf.squeeze(tf.matmul(tf.expand_dims(prob, 1), ref), 1,
+                            name='Decoder_Attention/Glimpse_' + str(i) + '_Layer/glimpse_process/step_'
+                                 + str(self.glimpses[i].call_time))
+
+        # attention
+        _, logit = self.pointer(hy, context, Env)
+        with tf.variable_scope('Decoder_Attention/Pointer_Layer'):
+            if self.mask_pointer:
+                logit -= self.BIGNUMBER * Env.mask_trace[-1]
+
+            return logit, decoder_state
+
+
+if __name__ == '__main__':
+    args = {}
+
+    args['trainer_save_interval'] = 10000
+    args['trainer_inspect_interval'] = 10000
+    args['trainer_model_dir'] = 'model_trained/'
+    args['trainer_total_epoch'] = 100000
+
+    args['n_customers'] = 10
+    args['data_dir'] = 'data/'
+    args['random_seed'] = 1
+    args['instance_num'] = 10000
+    args['capacity'] = 20
+    args['batch_size'] = 128
+
+    args['actor_net_lr'] = 0.01
+    args['critic_net_lr'] = 0.01
+    args['gcn_net_lr'] = 0.01
+    args['max_grad_norm'] = 10
+    args['keep_prob'] = 0.1
+
+    args['GCN_max_degree'] = 1
+    args['GCN_vertex_dim'] = 32
+    args['GCN_latent_layer_dim'] = 128
+    args['GCN_layer_num'] = 5
+    args['GCN_diver_num'] = 15
+
+    # {'gcn','linear_embedding'}
+    args['embedding_type'] = 'gcn'
+    # args['linear_embedding_num_units'] = 128
