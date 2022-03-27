@@ -42,3 +42,71 @@ class GraphConvolutionLayer(object):
 
         self.vars = {}
         with tf.variable_scope(self.name + '/vars'):
+            for i in range(len(self.support)):
+                self.vars['weights_' + str(i)] = glorot([input_dim, output_dim],
+                                                        name='weights_' + str(i))
+            if self.bias:
+                self.vars['bias'] = zeros([output_dim], name='bias')
+
+        if self.logging:
+            self._log_vars()
+
+    def _log_vars(self):
+        with tf.variable_scope(self.name):
+            for var in self.vars:
+                tf.summary.histogram('vars/' + var, self.vars[var])
+
+    def __call__(self, inputs):
+        if self.logging:
+            tf.summary.histogram(self.name + '/inputs', inputs)
+
+        with tf.variable_scope(self.name + '/Forward'):
+            outputs = self._call(inputs)
+
+        if self.logging:
+            tf.summary.histogram(self.name + '/outputs', outputs)
+
+        return outputs
+
+    def _call(self, inputs):
+        x = inputs
+
+        # dropout
+        x = tf.nn.dropout(x, keep_prob=self.keep_prob)
+
+        # convolve
+        supports = list()
+        for i in range(len(self.support)):
+            if not self.featureless:
+                if cur_version == VERSION['PC']:
+                    pre_sup = tf.matmul(x, self.vars['weights_' + str(i)])
+                elif cur_version == VERSION['Server']:
+                    pre_sup = future_matmul(x, self.vars['weights_' + str(i)])
+            else:
+                pre_sup = self.vars['weights_' + str(i)]
+            support = tf.matmul(self.support[i], pre_sup)
+            supports.append(support)
+        # just add different degree support matrix element-wise
+        output = tf.add_n(supports)
+
+        # bias
+        if self.bias:
+            output += self.vars['bias']
+
+        return self.act(output)
+
+
+def glorot(shape, name=None):
+    """Glorot & Bengio (AISTATS 2010) init."""
+    init_range = np.sqrt(6.0 / (shape[0] + shape[1]))
+    initial = tf.random_uniform(shape, minval=-init_range, maxval=init_range, dtype=tf.float32)
+    return tf.Variable(initial, name=name)
+
+
+def zeros(shape, name=None):
+    """All zeros."""
+    initial = tf.zeros(shape, dtype=tf.float32)
+    return tf.Variable(initial, name=name)
+
+
+def future_matmul(A, B):
