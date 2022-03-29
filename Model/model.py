@@ -72,3 +72,80 @@ class Model(object):
 def record_args(args, file_name='args.json'):
     with open(file_name, 'w') as f:
         json.dump(args, f, sort_keys=True, indent=4, separators=(',', ': '))
+
+
+if __name__ == '__main__':
+    args = {}
+    args['capacity'] = 10
+    args['n_customers'] = 10
+    args['data_dir'] = '../data/'
+    args['random_seed'] = 1
+    args['instance_num'] = 1000
+    args['capacity'] = 20
+    args['batch_size'] = 128
+    args['keep_prob'] = 0.2
+
+    args['GCN_max_degree'] = 1
+    args['GCN_vertex_dim'] = 32
+    args['GCN_latent_layer_dim'] = 128
+    args['GCN_layer_num'] = 5
+    args['GCN_diver_num'] = 15
+
+    # {'gcn','linear_embedding'}
+    args['embedding_type'] = 'linear_embedding'
+    args['linear_embedding_num_units'] = 128
+
+    args['actor_hidden_dim'] = 128
+    args['actor_use_tanh'] = False
+    args['actor_tanh_exploration'] = 10
+    args['actor_n_glimpses'] = 2
+    args['actor_mask_glimpses'] = False
+    args['actor_mask_pointer'] = True
+    args['actor_forget_bias'] = True
+    args['actor_rnn_layer_num'] = 3
+    args['actor_decode_len'] = 5
+
+    args['critic_rnn_layers'] = 3
+    args['critic_hidden_dim'] = 128
+    args['critic_rnn_layers'] = 4
+    args['critic_n_process_blocks'] = 3
+    args['critic_hidden_dim'] = 128
+
+    with tf.variable_scope('Input'):
+        input_data = {
+            'input_pnt': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1, 2],
+                                        name='coordinates'),
+            'input_distance_matrix': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1,
+                                                                       args['n_customers'] + 1],
+                                                    name='distance_matrix'),
+            'demand': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1], name='demand')
+        }
+
+
+    datamanager = DataManager(args, 'train')
+    datamanager.create_data()
+
+    environment = Environment(args)
+    model = Model(args, Inputs=input_data, env=environment,
+                  embedding_type=args['embedding_type'])
+
+    init = tf.initialize_all_variables()
+
+    writer = tf.summary.FileWriter('./graph/', tf.get_default_graph())
+    summaries = tf.summary.merge_all()
+
+    for i in range(1):
+        with tf.Session() as sess:
+            sess.run(init)
+
+            input_data = datamanager.load_task()
+
+            summ = sess.run(summaries, feed_dict={
+                model.inputs['input_pnt']: input_data['input_pnt'],
+                model.inputs['input_distance_matrix']: input_data['input_distance_matrix'],
+                model.inputs['demand']: input_data['demand'],
+                environment.input_pnt: input_data['input_pnt'],
+                environment.input_distance_matrix: input_data['input_distance_matrix'],
+                environment.demand_trace[0]: input_data['demand']})
+
+            writer.add_summary(summ, global_step=i)
