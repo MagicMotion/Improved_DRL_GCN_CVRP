@@ -110,3 +110,6 @@ def zeros(shape, name=None):
 
 
 def future_matmul(A, B):
+    B_ = tf.tile(B, [tf.shape(A)[0], 1])
+    B = tf.reshape(B_, [tf.shape(A)[0], tf.shape(B)[0], tf.shape(B)[1]])
+    return tf.matmul(A, B)
