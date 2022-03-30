@@ -82,3 +82,69 @@ class Trainer(object):
                                    self.gcn_train_step]
 
             elif args['embedding_type'] == 'linear_embedding':
+                self.linear_embedding_optim = tf.train.AdamOptimizer(args['linear_embedding_lr'])
+
+                self.linear_embedding_gra_and_var = self.linear_embedding_optim.compute_gradients(
+                    self.linear_embedding_loss,
+                    tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                      scope='Model/LinearEmbediding'))
+                self.clip_linear_embedding_gra_and_var = [(tf.clip_by_norm(grad, args['max_grad_norm']), var)
+                                                          for grad, var in self.linear_embedding_gra_and_var]
+                self.linear_embedding_train_step = self.linear_embedding_optim.apply_gradients(
+                    self.clip_linear_embedding_gra_and_var)
+
+                self.train_step = [self.actor_train_step,
+                                   self.critic_train_step,
+                                   self.linear_embedding_train_step]
+
+            self.var_list = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
+            self.saver = tf.train.Saver(var_list=self.var_list, max_to_keep=5)
+
+            config = tf.ConfigProto()
+            config.gpu_options.allow_growth = True
+            self.sess = tf.Session(config=config)
+
+            self.merged = tf.summary.merge_all()
+
+    def __call__(self):
+        self.init = tf.initialize_all_variables()
+
+        self.sess.run(self.init)
+
+        self.log_writer = tf.summary.FileWriter('log/', self.sess.graph)
+
+        build_meta = True
+        for step in range(self.total_epoch):
+            print('step: ', step)
+            # self.train_data = self.datamanager.load_task(fixed_name='vrp-size-10-id-1-train.mat')
+            self.train_data = self.datamanager.load_task()
+
+
+            _, summary = self.sess.run([self.train_step, self.merged], feed_dict={
+                self.model.inputs['input_pnt']: self.train_data['input_pnt'],
+                self.model.inputs['input_distance_matrix']: self.train_data['input_distance_matrix'],
+                self.model.inputs['demand']: self.train_data['demand'],
+                self.environment.input_pnt: self.train_data['input_pnt'],
+                self.environment.input_distance_matrix: self.train_data['input_distance_matrix'],
+                self.environment.demand_trace[0]: self.train_data['demand']})
+
+            self.log_writer.add_summary(summary, step)
+
+            if step % args['trainer_save_interval'] == 0:
+                if build_meta:
+                    self.saver.save(self.sess, self.args['trainer_model_dir'] + '/model.ckpt', global_step=step)
+                    build_meta = False
+                else:
+                    self.saver.save(self.sess, self.args['trainer_model_dir'] + '/model.ckpt', global_step=step,
+                                    write_meta_graph=False)
+
+
+            # actor_loss = self.actor_loss.eval(session=self.sess,feed_dict={
+            #     self.model.inputs['input_pnt']: self.train_data['input_pnt'],
+            #     self.model.inputs['input_distance_matrix']: self.train_data['input_distance_matrix'],
+            #     self.model.inputs['demand']: self.train_data['demand'],
+            #     self.environment.input_pnt: self.train_data['input_pnt'],
+            #     self.environment.input_distance_matrix: self.train_data['input_distance_matrix'],
+            #     self.environment.demand_trace[0]: self.train_data['demand']})
+
+            # self.environment.info_inspect(self.train_data, self.model, self.sess)
