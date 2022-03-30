@@ -148,3 +148,69 @@ class Trainer(object):
             #     self.environment.demand_trace[0]: self.train_data['demand']})
 
             # self.environment.info_inspect(self.train_data, self.model, self.sess)
+
+            # if(step % args['trainer_inspect_interval']) == 0:
+            #     print('Train info inspect ',step,': ')
+            #     self.environment.info_inspect(self.train_data, self.model, self.sess)
+            # self.watch_variables()
+
+            # print('Train info inspect ',step,': ')
+            # self.environment.info_inspect(self.train_data, self.model, self.sess)
+
+    def __del__(self):
+        pass
+        # self.sess.close()
+
+    def watch_variables(self):
+        # Variables are independent with inputs
+        print('Model variables watch:')
+        for item in self.var_list:
+            print(item.name, ' shape:', item.shape)
+            print(self.sess.run(item))
+
+
+if __name__ == '__main__':
+    args = {}
+
+    # Trainer
+    args['trainer_save_interval'] = 10000
+    args['trainer_inspect_interval'] = 10000
+    args['trainer_model_dir'] = 'model_trained/'
+    args['trainer_epoch'] = 10
+    args['batch_size'] = 128
+    args['keep_prob'] = 1
+    args['max_grad_norm'] = 2.0
+
+
+    # Environment
+    args['n_customers'] = 10
+    args['data_dir'] = 'data/'
+    args['random_seed'] = 1
+    args['instance_num'] = 10000
+    args['capacity'] = 20
+
+    # Network
+    # embedding type
+    # {'gcn','linear_embedding'}
+    args['embedding_type'] = 'linear_embedding'
+
+    #linear embedding
+    args['linear_embedding_num_units'] = 128
+    args['linear_embedding_lr'] = 0.0001
+    args['linear_embedding_use_tanh'] = False
+    args['linear_embedding_use_bias'] = True
+
+    # GCN
+    args['gcn_lr'] = 0.0001
+    args['GCN_max_degree'] = 1
+    args['GCN_vertex_dim'] = 32
+    args['GCN_latent_layer_dim'] = 128
+    args['GCN_layer_num'] = 5
+    args['GCN_diver_num'] = 15
+
+    # Actor
+    args['actor_lr'] = 0.0001
+    args['actor_hidden_dim'] = 128
+    args['actor_use_tanh'] = False
+    args['actor_tanh_exploration'] = 10
+    args['actor_n_glimpses'] = 0
