@@ -214,3 +214,39 @@ if __name__ == '__main__':
     args['actor_use_tanh'] = False
     args['actor_tanh_exploration'] = 10
     args['actor_n_glimpses'] = 0
+    args['actor_mask_glimpses'] = True
+    args['actor_mask_pointer'] = True
+    args['actor_forget_bias'] = True
+    args['actor_rnn_layer_num'] = 1
+    args['actor_decode_len'] = 16
+
+    # Critic
+    args['critic_lr'] = 0.0001
+    args['critic_rnn_layers'] = 1
+    args['critic_hidden_dim'] = 128
+    args['critic_n_process_blocks'] = 3
+
+    try:
+        if args['actor_decode_len'] < args['n_customers']:
+            raise Exception('Error, Decision step less than customer number!')
+    except Exception as expection:
+        print(expection)
+        exit()
+
+    record_args(args, 'args.json')
+
+    with tf.variable_scope('Input'):
+        input_data = {
+            'input_pnt': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1, 2],
+                                        name='coordinates'),
+            'input_distance_matrix': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1,
+                                                                       args['n_customers'] + 1],
+                                                    name='distance_matrix'),
+            'demand': tf.placeholder(tf.float32, shape=[args['batch_size'], args['n_customers'] + 1], name='demand')
+        }
+
+    environment = Environment(args)
+    my_model = Model(args, input_data, environment, embedding_type=args['embedding_type'])
+    trainer = Trainer(args, my_model, environment)
+
+    trainer()
