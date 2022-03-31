@@ -1,3 +1,7 @@
 {
     "GCN_diver_num": 15,
-    "GCN_latent_lay
+    "GCN_latent_layer_dim": 128,
+    "GCN_layer_num": 5,
+    "GCN_max_degree": 1,
+    "GCN_vertex_dim": 32,
+  
