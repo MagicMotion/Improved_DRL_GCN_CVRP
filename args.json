@@ -4,4 +4,7 @@
     "GCN_layer_num": 5,
     "GCN_max_degree": 1,
     "GCN_vertex_dim": 32,
-  
+    "actor_decode_len": 16,
+    "actor_forget_bias": true,
+    "actor_hidden_dim": 128,
+    "actor_lr": 
