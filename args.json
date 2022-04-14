@@ -10,4 +10,7 @@
     "actor_lr": 0.0001,
     "actor_mask_glimpses": true,
     "actor_mask_pointer": true,
-    "actor_n_glimps
+    "actor_n_glimpses": 0,
+    "actor_rnn_layer_num": 1,
+    "actor_tanh_exploration": 10,
+    "a
