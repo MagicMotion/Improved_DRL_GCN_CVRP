@@ -13,4 +13,7 @@
     "actor_n_glimpses": 0,
     "actor_rnn_layer_num": 1,
     "actor_tanh_exploration": 10,
-    "a
+    "actor_use_tanh": false,
+    "batch_size": 128,
+    "capacity": 20,
+    "critic_hidd
