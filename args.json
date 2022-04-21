@@ -23,4 +23,7 @@
     "data_dir": "data/",
     "embedding_type": "linear_embedding",
     "gcn_lr": 0.0001,
-    "instance_num": 1000
+    "instance_num": 10000,
+    "keep_prob": 1,
+    "linear_embedding_lr": 0.0001,
+    "linear_embedding_num_u
