@@ -28,4 +28,8 @@
     "linear_embedding_lr": 0.0001,
     "linear_embedding_num_units": 128,
     "linear_embedding_use_bias": true,
-    "linear_embedding_use_tanh": false
+    "linear_embedding_use_tanh": false,
+    "max_grad_norm": 2.0,
+    "n_customers": 10,
+    "random_seed": 1,
+    "trai
