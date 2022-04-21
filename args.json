@@ -32,4 +32,6 @@
     "max_grad_norm": 2.0,
     "n_customers": 10,
     "random_seed": 1,
-    "trai
+    "trainer_epoch": 10,
+    "trainer_inspect_interval": 10000,
+    "trainer_model_dir": "model_trained/",
