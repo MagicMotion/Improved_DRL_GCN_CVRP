@@ -21,4 +21,6 @@
     "critic_n_process_blocks": 3,
     "critic_rnn_layers": 1,
     "data_dir": "data/",
-    "embeddi
+    "embedding_type": "linear_embedding",
+    "gcn_lr": 0.0001,
+    "instance_num": 1000
