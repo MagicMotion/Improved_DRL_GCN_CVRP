@@ -26,4 +26,6 @@
     "instance_num": 10000,
     "keep_prob": 1,
     "linear_embedding_lr": 0.0001,
-    "linear_embedding_num_u
+    "linear_embedding_num_units": 128,
+    "linear_embedding_use_bias": true,
+    "linear_embedding_use_tanh": false
