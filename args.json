@@ -35,3 +35,5 @@
     "trainer_epoch": 10,
     "trainer_inspect_interval": 10000,
     "trainer_model_dir": "model_trained/",
+    "trainer_save_interval": 10000
+}
